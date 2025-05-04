@@ -1,0 +1,65 @@
+# .dockerignore
+# Git
+.git
+.gitignore
+
+# CI
+.github
+.gitlabci.yml
+.travis.yml
+
+# Docker
+docker-compose.yml
+.docker
+Dockerfile
+.dockerignore
+
+# IDE
+.idea
+.vscode
+
+# OS
+.DS_Store
+*.swp
+
+# Helm
+helm/
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Build directories
+bin/
+dist/
+
+# Documentation
+README.md
+LICENSE
+
+# Environment files
+.env
+.env.*
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# But keep what we need
+!config/
+!db/

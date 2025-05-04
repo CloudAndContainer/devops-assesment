@@ -1,0 +1,90 @@
+# helm/transaction-api/values.yaml
+replicaCount: 5
+
+image:
+  repository: ghcr.io/<org>/transaction-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: transaction-api.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+nodeSelector:
+  role: api
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - transaction-api
+        topologyKey: kubernetes.io/hostname
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 2
+
+config:
+  postgres:
+    host: "postgres.database.svc.cluster.local:5432"
+    database: "bdb"
+    userName: "test"
+    password: ""  # This should be set via secrets in production
+    sslMode: "disable"
+    automigrate: true
+  
+  app:
+    port: 8080
+    environment: "prod"
+    host: "0.0.0.0"
+
+# Secrets configuration
+secrets:
+  createSecret: true
+  postgresPassword: ""  # Must be provided at deployment time

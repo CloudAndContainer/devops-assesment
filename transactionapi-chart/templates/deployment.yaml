@@ -1,0 +1,112 @@
+# helm/transactionapi-chart/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "transactionapi-chart.fullname" . }}
+  labels:
+    {{- include "transactionapi-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "transactionapi-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "transactionapi-chart.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "transactionapi-chart.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.app.port }}
+              protocol: TCP
+          env:
+            - name: BANK_POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres.host
+            - name: BANK_POSTGRES_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres.database
+            - name: BANK_POSTGRES_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres.userName
+            - name: BANK_POSTGRES_SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres.sslMode
+            - name: BANK_POSTGRES_AUTOMIGRATE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres.automigrate
+            - name: BANK_APP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: app.port
+            - name: BANK_APP_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: app.environment
+            - name: BANK_APP_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: app.host
+            - name: BANK_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "transactionapi-chart.fullname" . }}
+                  key: postgres-password
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
